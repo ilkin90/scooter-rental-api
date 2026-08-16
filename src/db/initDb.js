@@ -12,11 +12,11 @@ const initDatabase = async () => {
         const sqlQuery = fs.readFileSync(sqlPath, 'utf8');
         
         await db.query(sqlQuery);
-        console.log('cedvel yaradildi hec bir problem yoxdur')
+        console.log('cedvel yaradildi hec bir problem yoxdur');
+        process.exit()
     }catch(error){
         console.error(error.message);
-    }finally{
-        process.exit();
+        process.exit(-1);
     }
 }
 initDatabase();
