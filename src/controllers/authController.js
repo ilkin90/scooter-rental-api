@@ -26,7 +26,6 @@ const registerUser = async (req, res, next) => {
             'INSERT INTO users(email, password_hash) VALUES($1, $2) RETURNING id, email, role, created_at',
             values
         );
-
         res.status(201).json({
             success: true,
             message: 'yeni istifadeci daxil edildi',
