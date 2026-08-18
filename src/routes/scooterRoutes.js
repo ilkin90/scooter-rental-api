@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const {
+    authenticateToken, 
+    requireAdmin} = require('../middleware/authMiddleware')
 
 const {
     getAllScooters,
@@ -11,8 +14,9 @@ const {
 
 router.get('/',getAllScooters );
 router.get('/:id', getScootersById);
-router.post('/', createScooters);
-router.patch('/:id', updateScooters);
-router.delete('/:id',deleteScooters);
+router.post('/', authenticateToken, requireAdmin, createScooters);
+router.patch('/:id', authenticateToken, requireAdmin, updateScooters);
+router.delete('/:id',authenticateToken, requireAdmin, deleteScooters);
 
-module.exports = router
+
+module.exports = router;

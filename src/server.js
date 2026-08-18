@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
-const scooterRoutes = require('./routes/scooterRoutes')
+const scooterRoutes = require('./routes/scooterRoutes');
+const authRoutes = require('./routes/authRoutes')
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +15,9 @@ app.get('/health', (req,res) => {
     })
 })
 
-app.use('/scooters', scooterRoutes);
+app.use('/api/scooters', scooterRoutes);
+
+app.use('/api/auth', authRoutes);
 
 // tanimlanmayan endpoint
  app.use((req, res, next) => {
