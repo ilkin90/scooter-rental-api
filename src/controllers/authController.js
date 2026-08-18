@@ -3,36 +3,57 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const registerUser = async (req, res, next) => {
-    try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'daxil etdiyiniz melumatlar tam deyil'
-            });
-        }
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({
+            success: false,
+            message: 'email ve paswordu daxil edin'
+        });
+    }
 
-        const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    const client = await db.getClient();
+
+    try {
+        await client.query('BEGIN');
+
+        const existingUser = await client.query('SELECT id FROM users WHERE email = $1', [email]);
         if (existingUser.rows.length > 0) {
+            await client.query('ROLLBACK');
             return res.status(409).json({
                 success: false,
-                message: 'bu email bagli hesab var'
+                message: 'bu emaile bagli hesab var'
             });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const values = [email, hashedPassword];
-        const result = await db.query(
+        const userResult = await client.query(
             'INSERT INTO users(email, password_hash) VALUES($1, $2) RETURNING id, email, role, created_at',
-            values
+            [email, hashedPassword]
         );
+        const user = userResult.rows[0];
+
+        const walletResult = await client.query(
+            'INSERT INTO wallets(user_id) VALUES($1) RETURNING *',
+            [user.id]
+        );
+        const wallet = walletResult.rows[0];
+
+        await client.query('COMMIT');
+
         res.status(201).json({
             success: true,
-            message: 'yeni istifadeci daxil edildi',
-            data: result.rows[0]
+            message: 'yeni hesab elave edildi',
+            data: {
+                user: user,
+                wallet: wallet
+            }
         });
+
     } catch (error) {
+        await client.query('ROLLBACK');
         next(error);
+    } finally {
+        client.release();
     }
 };
 
