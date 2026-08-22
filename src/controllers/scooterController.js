@@ -29,6 +29,69 @@ const getAllScooters = async(req, res, next) => {
         next(err);
     }
 }
+const getNearbyScooters = async(req, res, next) => {
+    try{
+        const {lat, lng, radius = 1} = req.query;
+        if(!lat || !lng){
+            return res.status(400).json({
+                success: false,
+                message: 'melumatlari tam daxil etmemisiz'
+            })
+        }
+        const userLat = parseFloat(lat);
+        const userLng = parseFloat(lng);
+        const radiusKm = parseFloat(radius);
+
+        if(isNaN(userLat) || isNaN(userLng) || isNaN(radiusKm)){
+            return res.status(400).json({
+                success: false,
+                message: 'daxil etdiyiniz melumatlar eded olmalidir'
+            })
+        }
+        const query = `
+            SELECT 
+                id,
+                code,
+                battery_level,
+                status,
+                latitude,
+                longitude,
+                ROUND(
+                    (6371 * acos(
+                        LEAST(1.0, GREATEST(-1.0,
+                            cos(radians($1)) * cos(radians(latitude)) * 
+                            cos(radians(longitude) - radians($2)) + 
+                            sin(radians($1)) * sin(radians(latitude))
+                        ))
+                    ))::numeric, 2
+                ) AS distance_km
+            FROM scooters
+            WHERE status = 'available' 
+              AND is_active = true
+              AND latitude IS NOT NULL 
+              AND longitude IS NOT NULL
+              AND (
+                  6371 * acos(
+                      LEAST(1.0, GREATEST(-1.0,
+                          cos(radians($1)) * cos(radians(latitude)) * 
+                          cos(radians(longitude) - radians($2)) + 
+                          sin(radians($1)) * sin(radians(latitude))
+                      ))
+                  )
+              ) <= $3
+            ORDER BY distance_km ASC;
+        `;
+        const result = await db.query(query, [userLat, userLng, radiusKm]);
+        res.status(200).json({
+            success: true,
+            count: result.rows.length,
+            data: result.rows
+        })
+
+    }catch(error){
+        next(error);
+    }
+}
 
 //get scooters id
 
@@ -52,19 +115,25 @@ const getScootersById = async(req, res, next) => {
     }
 }
 
-// post
+// create
 
 const createScooters = async(req, res, next) => {
     try{
-        const {code,battery_level,status} = req.body;
+        const {code,battery_level,status, latitude, longitude} = req.body;
           if(!code || battery_level === undefined){
             return res.status(400).json({
                 success: false,
                 message: 'skoter kodu ve bataraye seviyesi mutleq daxil edilmelidir'
             })
         };
-        const sqlText = 'INSERT INTO scooters(code, battery_level, status) VALUES($1, $2, $3) RETURNING *';
-        const values = [code, battery_level, status || 'available'];
+        if ((status === 'available' || !status) && (latitude === undefined || longitude === undefined)) {
+            return res.status(400).json({
+                success: false,
+                message: "Xəritədə görünməsi üçün 'available' statuslu skuterin koordinatları daxil edilməlidir."
+            });
+        }
+        const sqlText = 'INSERT INTO scooters(code, battery_level, status, latitude, longitude) VALUES($1, $2, $3, $4, $5) RETURNING *';
+        const values = [code, battery_level, status || 'available', latitude || null, longitude || null];
         const result = await db.query(sqlText, values);
         res.status(201).json({
             success: true,
@@ -81,7 +150,7 @@ const createScooters = async(req, res, next) => {
 const updateScooters = async(req, res, next) => {
     try{
         const { id } = req.params;
-        const { status, battery_level } = req.body;
+        const { status, battery_level, latitude, longitude } = req.body;
         
         const updates = [];
         const values = [];
@@ -94,6 +163,14 @@ const updateScooters = async(req, res, next) => {
             values.push(battery_level);
             updates.push(`battery_level = $${values.length}`);
         };
+        if (latitude !== undefined) {
+            values.push(latitude);
+            updates.push(`latitude = $${values.length}`);
+        }
+        if (longitude !== undefined) {
+            values.push(longitude);
+            updates.push(`longitude = $${values.length}`);
+        }
         if(updates.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -158,6 +235,7 @@ const deleteScooters = async(req, res, next) => {
 }
 module.exports = {
     getAllScooters,
+    getNearbyScooters,
     getScootersById,
     createScooters,
     updateScooters,

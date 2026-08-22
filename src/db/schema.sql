@@ -60,5 +60,11 @@ CREATE TABLE IF NOT EXISTS rentals(
     REFERENCES users(id)
     ON DELETE CASCADE
 );
+
 CREATE UNIQUE INDEX IF NOT EXISTS one_active_rental_per_user
 ON rentals(user_id) WHERE status = 'active';
+
+
+ALTER TABLE scooters 
+ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8),
+ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8);

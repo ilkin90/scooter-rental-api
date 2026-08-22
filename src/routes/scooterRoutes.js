@@ -6,6 +6,7 @@ const {
 
 const {
     getAllScooters,
+    getNearbyScooters,
     getScootersById,
     createScooters,
     updateScooters,
@@ -13,6 +14,7 @@ const {
 } = require('../controllers/scooterController');
 
 router.get('/',getAllScooters );
+router.get('/nearby', getNearbyScooters)
 router.get('/:id', getScootersById);
 router.post('/', authenticateToken, requireAdmin, createScooters);
 router.patch('/:id', authenticateToken, requireAdmin, updateScooters);
