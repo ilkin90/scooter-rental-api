@@ -1,4 +1,3 @@
-
 CREATE TABLE IF NOT EXISTS scooters(
     id SERIAL PRIMARY KEY,
     code VARCHAR(20) UNIQUE NOT NULL,
@@ -27,6 +26,20 @@ CREATE TABLE IF NOT EXISTS wallets (
     REFERENCES users(id)
     ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS wallet_transactions(
+    id SERIAL PRIMARY KEY,
+    wallet_id INTEGER NOT NULL,
+    amount DECIMAL(10,2) NOT NULL CHECK(amount > 0.00),
+    transaction_type VARCHAR(20) CHECK(transaction_type in('TOP_UP', 'PAYMENT', 'REFUND')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- DEFAULT ƏLAVƏ EDİLDİ
+
+    CONSTRAINT fk_transactions_wallets
+    FOREIGN KEY (wallet_id)
+    REFERENCES wallets(id)
+    ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS rentals(
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
@@ -35,7 +48,7 @@ CREATE TABLE IF NOT EXISTS rentals(
     end_time TIMESTAMP,
     total_minutes INTEGER,
     total_cost DECIMAL(10, 2),
-    status VARCHAR(20) DEFAULT 'active',
+    status VARCHAR(20) DEFAULT 'active' CHECK(status in('active','completed','cancelled')),
 
     CONSTRAINT fk_rentals_scooter
     FOREIGN KEY (scooter_id)
@@ -46,6 +59,6 @@ CREATE TABLE IF NOT EXISTS rentals(
     FOREIGN KEY (user_id)
     REFERENCES users(id)
     ON DELETE CASCADE
-
 );
-
+CREATE UNIQUE INDEX IF NOT EXISTS one_active_rental_per_user
+ON rentals(user_id) WHERE status = 'active';
