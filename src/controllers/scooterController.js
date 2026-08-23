@@ -129,7 +129,7 @@ const createScooters = async(req, res, next) => {
         if ((status === 'available' || !status) && (latitude === undefined || longitude === undefined)) {
             return res.status(400).json({
                 success: false,
-                message: "Xəritədə görünməsi üçün 'available' statuslu skuterin koordinatları daxil edilməlidir."
+                message: "Xəritədə görünməsi üçün 'available' statuslu skuterin koordinatlari daxil edilməlidir."
             });
         }
         const sqlText = 'INSERT INTO scooters(code, battery_level, status, latitude, longitude) VALUES($1, $2, $3, $4, $5) RETURNING *';

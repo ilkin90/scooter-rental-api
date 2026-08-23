@@ -4,7 +4,8 @@ const scooterRoutes = require('./routes/scooterRoutes');
 const authRoutes = require('./routes/authRoutes');
 const walletRoutes = require('./routes/walletRoutes');
 const rentalRoutes = require('./routes/rentalRoutes');
-const startRentalCron = require('./services/rentalCron'); // Cron daxil edilir
+const startRentalCron = require('./services/rentalCron'); 
+const { swaggerUi, specs } = require('./config/swagger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,10 +19,15 @@ app.get('/health', (req, res) => {
     });
 });
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.use('/api/scooters', scooterRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/rentals', rentalRoutes);
+app.get('/api-docs-json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.json(specs)
+})
 
 // Tanımlanmayan endpoint
 app.use((req, res, next) => {
