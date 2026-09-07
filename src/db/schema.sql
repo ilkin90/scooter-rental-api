@@ -68,3 +68,7 @@ ON rentals(user_id) WHERE status = 'active';
 ALTER TABLE scooters 
 ADD COLUMN IF NOT EXISTS latitude DECIMAL(10, 8),
 ADD COLUMN IF NOT EXISTS longitude DECIMAL(11, 8);
+
+ALTER TABLE rentals 
+ALTER COLUMN start_time TYPE TIMESTAMPTZ USING start_time AT TIME ZONE 'UTC',
+ALTER COLUMN end_time TYPE TIMESTAMPTZ USING end_time AT TIME ZONE 'UTC';

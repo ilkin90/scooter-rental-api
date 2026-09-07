@@ -59,6 +59,10 @@ const startRentalCron = () => {
                          WHERE id = $3`,
                         [currentMinutes + 1, (currentCost + PER_MINUTE_FEE).toFixed(2), rental_id]
                     );
+                    await client.query(
+                    `UPDATE scooters SET battery_level = GREATEST(0, battery_level - 1) WHERE id = $1`,
+                    [scooter_id]
+                    );
 
                 } else {
                     await client.query(

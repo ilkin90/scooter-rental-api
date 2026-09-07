@@ -101,40 +101,38 @@ const finishRental = async (req, res, next) => {
     try {
         await client.query('BEGIN');
 
+        // 1. İcarə, Cüzdan və Skuter məlumatlarını birlikdə çəkirik
         const activeRental = await client.query(
-            `SELECT r.id, r.scooter_id, r.start_time, r.total_minutes, r.total_cost, w.id as wallet_id, w.balance
+            `SELECT r.id, r.scooter_id, r.start_time, r.total_minutes, r.total_cost, 
+                    w.id as wallet_id, w.balance, s.battery_level
              FROM rentals r
              JOIN wallets w ON r.user_id = w.user_id
+             JOIN scooters s ON r.scooter_id = s.id
              WHERE r.user_id = $1 AND r.status = $2 
-             FOR UPDATE OF r, w`,
+             FOR UPDATE OF r, w, s`,
             [userId, 'active']
         );
 
         if (activeRental.rows.length === 0) {
             await client.query('ROLLBACK');
-            return res.status(400).json({
-                success: false,
-                message: 'İcarədə olan skuter tapılmadı'
-            });
+            return res.status(400).json({ success: false, message: 'İcarədə olan skuter tapılmadı' });
         }
 
         const rental = activeRental.rows[0];
-        const rentalId = rental.id;
-        const scooterId = rental.scooter_id;
-        const walletId = rental.wallet_id;
+        const { id: rentalId, scooter_id: scooterId, wallet_id: walletId, battery_level: currentBattery } = rental;
+
+        // 2. Vaxtı JS tərəfində tam milisaniyə ilə dəqiq hesablama (UTC xətasını önləyir)
+        const startTime = new Date(rental.start_time).getTime();
+        const currentTime = new Date().getTime();
+        const totalElapsedMinutes = Math.max(1, Math.ceil((currentTime - startTime) / (1000 * 60)));
+
         const paidMinutes = parseInt(rental.total_minutes || 0, 10);
+        const unpaidMinutes = Math.max(0, totalElapsedMinutes - paidMinutes);
+
         let currentBalance = parseFloat(rental.balance);
-
-        const calcQuery = await client.query(
-            `SELECT GREATEST(1, CEIL(EXTRACT(EPOCH FROM (NOW() - $1::timestamptz)) / 60)) AS total_elapsed_minutes`,
-            [rental.start_time]
-        );
-
-        const totalElapsedMinutes = parseInt(calcQuery.rows[0].total_elapsed_minutes, 10);
-        
-        const unpaidMinutes = totalElapsedMinutes - paidMinutes;
         let finalCost = parseFloat(rental.total_cost || 0);
 
+        // 3. Ödənilməmiş dəqiqələrin ödənişi
         if (unpaidMinutes > 0) {
             const extraCharge = parseFloat((unpaidMinutes * PER_MINUTE_PRICE).toFixed(2));
             const actualCharge = Math.min(currentBalance, extraCharge);
@@ -147,28 +145,30 @@ const finishRental = async (req, res, next) => {
                 currentBalance = parseFloat(updateWallet.rows[0].balance);
 
                 await client.query(
-                    `INSERT INTO wallet_transactions (wallet_id, amount, transaction_type)
-                     VALUES ($1, $2, $3)`,
+                    `INSERT INTO wallet_transactions (wallet_id, amount, transaction_type) VALUES ($1, $2, $3)`,
                     [walletId, actualCharge, 'PAYMENT']
                 );
             }
-            finalCost += extraCharge;
+            finalCost = parseFloat((finalCost + actualCharge).toFixed(2));
         }
 
+        // 4. Batareya hesablanması (Məsələn: hər 2 dəqiqəyə 1% batareya gedir)
+        const batteryDeduction = Math.floor(totalElapsedMinutes / 2);
+        const newBatteryLevel = Math.max(0, currentBattery - batteryDeduction);
+
+        // 5. Bazada İcarə və Skuter məlumatlarını yeniləmək
         const updateRental = await client.query(
             `UPDATE rentals 
              SET end_time = NOW(), total_minutes = $1, total_cost = $2, status = $3 
-             WHERE id = $4 
-             RETURNING *`,
+             WHERE id = $4 RETURNING *`,
             [totalElapsedMinutes, finalCost, 'completed', rentalId]
         );
 
         const updateScooter = await client.query(
             `UPDATE scooters 
-             SET status = $1 
-             WHERE id = $2 
-             RETURNING *`,
-            ['available', scooterId]
+             SET status = $1, battery_level = $2 
+             WHERE id = $3 RETURNING *`,
+            ['available', newBatteryLevel, scooterId]
         );
 
         await client.query('COMMIT');
