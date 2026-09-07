@@ -1,16 +1,21 @@
 require('dotenv').config();
 const express = require('express');
+const helmet = require('helmet')
 const scooterRoutes = require('./routes/scooterRoutes');
 const authRoutes = require('./routes/authRoutes');
 const walletRoutes = require('./routes/walletRoutes');
 const rentalRoutes = require('./routes/rentalRoutes');
 const startRentalCron = require('./services/rentalCron'); 
 const { swaggerUi, specs } = require('./config/swagger');
+const {globalLimiter} = require('./middleware/rateLimiter');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(helmet());
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/health', (req, res) => {
     res.status(200).json({
@@ -18,16 +23,18 @@ app.get('/health', (req, res) => {
         message: "server isleyir"
     });
 });
-
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
-app.use('/api/scooters', scooterRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/wallet', walletRoutes);
-app.use('/api/rentals', rentalRoutes);
+
 app.get('/api-docs-json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json(specs)
 })
+app.use('/api', globalLimiter);
+app.use('/api/scooters', scooterRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/rentals', rentalRoutes);
+
 
 // Tanımlanmayan endpoint
 app.use((req, res, next) => {
@@ -52,6 +59,5 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
     console.log(`listening on port: ${PORT}`);
     
-    // server baslayan kimi cron avtomatik ise dusur
     startRentalCron();
 });
