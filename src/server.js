@@ -23,6 +23,9 @@ app.get('/health', (req, res) => {
         message: "server isleyir"
     });
 });
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Scooter Rental API' });
+});
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 app.get('/api-docs-json', (req, res) => {
