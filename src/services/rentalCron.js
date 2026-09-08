@@ -65,15 +65,33 @@ const startRentalCron = () => {
                     );
 
                 } else {
+                    const remainingBalance = Math.min(currentBalance, PER_MINUTE_FEE);
+                    let finalCost = currentCost;
+
+                    if (remainingBalance > 0) {
+                        await client.query(
+                            `UPDATE wallets SET balance = balance - $1 WHERE id = $2`,
+                            [remainingBalance, wallet_id]
+                        );
+
+                        await client.query(
+                            `INSERT INTO wallet_transactions (wallet_id, amount, transaction_type)
+                             VALUES ($1, $2, $3)`,
+                            [wallet_id, remainingBalance, 'PAYMENT']
+                        );
+
+                        finalCost += remainingBalance;
+                    }
+
                     await client.query(
                         `UPDATE rentals 
-                         SET status = $1, end_time = NOW() 
-                         WHERE id = $2`,
-                        ['completed', rental_id]
+                         SET status = $1, end_time = NOW(), total_cost = $2 
+                         WHERE id = $3`,
+                        ['completed', finalCost.toFixed(2), rental_id]
                     );
 
                     await client.query(
-                        `UPDATE scooters SET status = $1 WHERE id = $2`,
+                        `UPDATE scooters SET status = $1, battery_level = GREATEST(0, battery_level - 1) WHERE id = $2`,
                         ['available', scooter_id]
                     );
                 }

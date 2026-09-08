@@ -17,7 +17,7 @@ const startRental = async (req, res, next) => {
         await client.query('BEGIN');
 
         const checkScooter = await client.query(
-            'SELECT status FROM scooters WHERE id = $1 AND status = $2 FOR UPDATE',
+            'SELECT id, status, battery_level FROM scooters WHERE id = $1 AND status = $2 FOR UPDATE',
             [scooterId, 'available']
         );
 
@@ -27,6 +27,14 @@ const startRental = async (req, res, next) => {
                 success: false,
                 message: 'Axtardığınız skuter tapılmadı və ya hazırda istifadədədir'
             });
+        }
+        const scooter = checkScooter.rows[0];
+        if(scooter.battery_level < 10){
+            await client.query('ROLLBACK');
+            return res.status(400).json({
+                success: false,
+                message: 'batareya seviyyesi asagidir'
+            })
         }
 
         const activeScooter = await client.query(
@@ -40,7 +48,7 @@ const startRental = async (req, res, next) => {
                 success: false,
                 message: 'Sizin hal-hazırda aktiv bir icarəniz var'
             });
-        }
+        }       
 
         const userWallet = await client.query(
             'SELECT balance FROM wallets WHERE user_id = $1 FOR UPDATE',
@@ -125,7 +133,6 @@ const finishRental = async (req, res, next) => {
         const startTime = new Date(rental.start_time).getTime();
         const currentTime = new Date().getTime();
         const totalElapsedMinutes = Math.max(1, Math.ceil((currentTime - startTime) / (1000 * 60)));
-
         const paidMinutes = parseInt(rental.total_minutes || 0, 10);
         const unpaidMinutes = Math.max(0, totalElapsedMinutes - paidMinutes);
 
