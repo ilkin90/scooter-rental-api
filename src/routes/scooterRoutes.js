@@ -72,7 +72,7 @@ const {
  * @swagger
  * /api/scooters:
  *   get:
- *     summary: Bütün aktiv skuterləri gətirir (status və battery_level üzrə filtrləmə ilə)
+ *     summary: "Butun aktiv skuterleri getirir"
  *     tags: [Scooters]
  *     parameters:
  *       - in: query
@@ -80,7 +80,7 @@ const {
  *         schema:
  *           type: string
  *           enum: [available, in_use, maintenance]
- *         description: Skuterin statusu
+ *         description: "Skuterin statusu"
  *       - in: query
  *         name: battery_level
  *         schema:
@@ -88,10 +88,10 @@ const {
  *           minimum: 0
  *           maximum: 100
  *           example: 80
- *         description: Minimum batareya səviyyəsi(0-100 arasi)
+ *         description: "Minimum batareya seviyyesi (0-100 arasi)"
  *     responses:
  *       200:
- *         description: Uğurlu əməliyyat
+ *         description: "Ugurlu emeliyyat"
  *         content:
  *           application/json:
  *             schema:
@@ -111,7 +111,7 @@ router.get('/', getAllScootersValidation, validate, getAllScooters);
  * @swagger
  * /api/scooters/nearby:
  *   get:
- *     summary: Daxil edilən koordinatlara əsasən yaxınlıqdakı skuterləri gətirir
+ *     summary: "Daxil edilen koordinatlara esasen yaxinliqdaki skuterleri getirir"
  *     tags: [Scooters]
  *     parameters:
  *       - in: query
@@ -119,22 +119,22 @@ router.get('/', getAllScootersValidation, validate, getAllScooters);
  *         required: true
  *         schema:
  *           type: number
- *         description: İstifadəçinin enliyi (Latitude)
+ *         description: "Istifadecinin enliyi (Latitude)"
  *       - in: query
  *         name: lng
  *         required: true
  *         schema:
  *           type: number
- *         description: İstifadəçinin uzunluğu (Longitude)
+ *         description: "Istifadecinin uzunlugu (Longitude)"
  *       - in: query
  *         name: radius
  *         schema:
  *           type: number
  *           default: 1
- *         description: Axtarış radiusu (km ilə, susmaya görə 1)
+ *         description: "Axtaris radiusu (km ile, susmaya gore 1)"
  *     responses:
  *       200:
- *         description: Yaxınlıqdakı skuterlərin siyahısı
+ *         description: "Yaxinliqdaki skuterlerin siyahisi"
  *         content:
  *           application/json:
  *             schema:
@@ -151,7 +151,7 @@ router.get('/', getAllScootersValidation, validate, getAllScooters);
  *                   items:
  *                     $ref: '#/components/schemas/Scooter'
  *       400:
- *         description: Koordinatlar daxil edilməyib və ya ədəd formatında deyil
+ *         description: "Koordinatlar daxil edilmeyib ve ya eded formatinda deyil"
  */
 router.get('/nearby', getNearbyScootersValidation, validate, getNearbyScooters);
 
@@ -159,7 +159,7 @@ router.get('/nearby', getNearbyScootersValidation, validate, getNearbyScooters);
  * @swagger
  * /api/scooters/{id}:
  *   get:
- *     summary: ID-yə görə tək bir skuteri gətirir
+ *     summary: "ID-ye gore tek bir skuteri getirir"
  *     tags: [Scooters]
  *     parameters:
  *       - in: path
@@ -167,10 +167,10 @@ router.get('/nearby', getNearbyScootersValidation, validate, getNearbyScooters);
  *         required: true
  *         schema:
  *           type: integer
- *         description: Skuterin ID-si
+ *         description: "Skuterin ID-si"
  *     responses:
  *       200:
- *         description: Skuter tapıldı
+ *         description: "Skuter tapildi"
  *         content:
  *           application/json:
  *             schema:
@@ -185,15 +185,15 @@ router.get('/nearby', getNearbyScootersValidation, validate, getNearbyScooters);
  *                 data:
  *                   $ref: '#/components/schemas/Scooter'
  *       404:
- *         description: Göstərilən ID ilə skuter tapılmadı
+ *         description: "Gosterilen ID ile skuter tapilmadi"
  */
-router.get('/:id', getScooterByIdValidation, validate,getScootersById);
+router.get('/:id', getScooterByIdValidation, validate, getScootersById);
 
 /**
  * @swagger
  * /api/scooters:
  *   post:
- *     summary: Yeni skuter əlavə edir (Yalnız Admin)
+ *     summary: "Yeni skuter elave edir (Yalniz Admin)"
  *     tags: [Scooters]
  *     security:
  *       - bearerAuth: []
@@ -226,21 +226,21 @@ router.get('/:id', getScooterByIdValidation, validate,getScootersById);
  *                 example: 49.8671
  *     responses:
  *       201:
- *         description: Skuter uğurla yaradıldı
+ *         description: "Skuter ugurla yaradildi"
  *       400:
- *         description: Mətiqlə bağlı xəta və ya çatışmayan məlumat (Məs: available üçün koordinatlar yoxdur)
+ *         description: "Mentiqle bagli xeta ve ya catismayan melumat"
  *       401:
- *         description: Avtorizasiya xətası (Token yoxdur)
+ *         description: "Avtorizasiya xetasi (Token yoxdur)"
  *       403:
- *         description: İcazə xətası (Admin deyilsiniz)
+ *         description: "Icaze xetasi (Admin deyilsiniz)"
  */
-router.post('/', authenticateToken, requireAdmin,createScooterValidation,validate, createScooters);
+router.post('/', authenticateToken, requireAdmin, createScooterValidation, validate, createScooters);
 
 /**
  * @swagger
  * /api/scooters/{id}:
  *   patch:
- *     summary: Skuter məlumatlarını yeniləyir (Yalnız Admin)
+ *     summary: "Skuter melumatlarini yenileyir (Yalniz Admin)"
  *     tags: [Scooters]
  *     security:
  *       - bearerAuth: []
@@ -250,7 +250,7 @@ router.post('/', authenticateToken, requireAdmin,createScooterValidation,validat
  *         required: true
  *         schema:
  *           type: integer
- *         description: Skuterin ID-si
+ *         description: "Skuterin ID-si"
  *     requestBody:
  *       required: true
  *       content:
@@ -273,19 +273,19 @@ router.post('/', authenticateToken, requireAdmin,createScooterValidation,validat
  *                 example: 49.8680
  *     responses:
  *       200:
- *         description: Məlumatlar uğurla dəyişdirildi
+ *         description: "Melumatlar ugurla deyisdirildi"
  *       400:
- *         description: Heç bir parametr daxil edilməyib
+ *         description: "Hec bir parametr daxil edilmeyib"
  *       404:
- *         description: ID-yə uyğun skuter tapılmadı
+ *         description: "ID-ye uygun skuter tapilmadi"
  */
-router.patch('/:id', authenticateToken, requireAdmin, updateScooterValidation,validate, updateScooters);
+router.patch('/:id', authenticateToken, requireAdmin, updateScooterValidation, validate, updateScooters);
 
 /**
  * @swagger
  * /api/scooters/{id}:
  *   delete:
- *     summary: Skuteri soft-delete edir (Yalnız Admin)
+ *     summary: "Skuteri soft-delete edir (Yalniz Admin)"
  *     tags: [Scooters]
  *     security:
  *       - bearerAuth: []
@@ -295,13 +295,13 @@ router.patch('/:id', authenticateToken, requireAdmin, updateScooterValidation,va
  *         required: true
  *         schema:
  *           type: integer
- *         description: Skuterin ID-si
+ *         description: "Skuterin ID-si"
  *     responses:
  *       200:
- *         description: Soft delete uğurla həyata keçirildi
+ *         description: "Soft delete ugurla heyata kecirildi"
  *       404:
- *         description: Səhv ID daxil edilib
+ *         description: "Sehv ID daxil edilib"
  */
-router.delete('/:id', authenticateToken, requireAdmin,deleteScooterValidation,validate, deleteScooters);
+router.delete('/:id', authenticateToken, requireAdmin, deleteScooterValidation, validate, deleteScooters);
 
 module.exports = router;
